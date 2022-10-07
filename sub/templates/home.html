@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ajax</title>
+    <script src="https://code.jquery.com/jquery-3.4.1.js"
+        integrity="sha256-WpOohJOqMqqyKL9FccASB9O0KwACQJpFTUBLTYOVvVU=" crossorigin="anonymous"></script>
+</head>
+
+<body>
+    <form method="post" id="form" novalidate>
+        <input type="hidden" name="stuid" id="stuid">
+        {% csrf_token %}
+        <!-- <h1>this is form</h1> -->
+        {{form.as_p}}
+        <input type="button" id="btnsave" value="submit">
+    </form>
+
+    <table>
+        <thead>
+            <tr>
+                <td>ID</td>
+                <td>NAME</td>
+                <td>LAST NAME</td>
+            </tr>
+        </thead>
+        <tbody id="tbody">
+            {% for i in data%}
+            <tr>
+                <td>{{i.id}}</td>
+                <td>{{i.name}}</td>
+                <td>{{i.last_name}}</td>
+                <td>
+                    <input type="button" class='edit' data-sid="{{i.id}}" value="edit">
+                </td>
+                <td>
+                    <input type="button" class='del' data-sid="{{i.id}}" value="delete">
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <script>
+        //Ajax function for adding data
+        $('#btnsave').click(function () {
+            output= '';
+            console.log('button clicked');
+            let sid = $('#stuid').val()
+            let nm = $('#id_name').val();
+            let lm = $('#id_last_name').val();
+            let csr = $('input[name=csrfmiddlewaretoken]').val();
+            if (nm == '') {
+                alert('enter your name')
+            } else if (lm == '') {
+                alert('enter your last name')
+            } else {
+                console.log(nm)
+                console.log(lm)
+                my_data = {stuid:sid, name: nm, last_name: lm, csrfmiddlewaretoken: csr }
+                //console.log(csr)
+                $.ajax({
+                    url: "{% url 'save' %}",
+                    method: 'POST',
+                    data: my_data,
+                    success: function (data) {
+                        x = data.student_data
+                        if (data.status == 'Save') {
+                            console.log('your data added succesfully!!!!')
+                            //console.log(data.student_data)
+                            for (i = 0; i < x.length; i++) {
+                                output +=
+                                "<tr><td>" + x[i].id + "</td><td>" + x[i].name + "</td><td>" + x[i].last_name + "</td><td> <input type='button' value='edit' class='edit' data-sid=" + x[i].id + "> <input type='button' value='delete' class='del' data-sid=" + x[i].id + ">"
+                            }
+                            $('#tbody').html(output)
+
+                            $('form')[0].reset();
+                        }
+                        if (data.status == 'Faild') {
+                            console.log('something went wrong please try again')
+                        }
+                    }
+                })
+            }
+        });
+
+//Ajax function for delete data
+        $('tbody').on('click','.del',function(){
+            console.log('delete button clicked!!!')
+            let id = $(this).attr('data-sid')
+            let csr = $('input[name=csrfmiddlewaretoken]').val();
+            console.log(id)
+            mydata = {sid:id,csrfmiddlewaretoken:csr}
+            mythis = this
+            $.ajax({
+                url:'delete/',
+                method:'POST',
+                data:mydata,
+                success:function(data){
+                    if (data.status == 'Delete'){
+                        $(mythis).closest('tr').fadeOut();
+                    }else {
+                        alert('your data is not deleted please try again')
+                    }
+                }
+            });
+        });
+
+//Ajax function for editing function
+
+       $('tbody').on('click','.edit',function(){
+          console.log('edit button clicked');
+          let id = $(this).attr('data-sid');
+          let csr = $('input[name=csrfmiddlewaretoken]').val();
+          console.log(id);
+          mydata1 = {sid:id,csrfmiddlewaretoken:csr};
+          $.ajax({
+            url:"{% url 'edit' %}",
+            method:'POST',
+            data:mydata1,
+            dataType:"json",
+            success:function(data){
+                console.log(data.name)
+                console.log(data.last_name)
+                $('#stuid').val(data.id)
+                $('#id_name').val(data.name)
+                $('#id_last_name').val(data.last_name)
+            }
+          })
+       })
+
+    </script>
+</body>
+
+</html>
